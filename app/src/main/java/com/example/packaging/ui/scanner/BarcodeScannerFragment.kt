@@ -6,16 +6,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import com.example.packaging.R
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.packaging.data.CompanyEntity
 import com.example.packaging.databinding.FragmentBarcodeScannerBinding
-import com.google.zxing.integration.android.IntentIntegrator
+import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
-import kotlinx.coroutines.launch
 
 class BarcodeScannerFragment : Fragment() {
 
@@ -23,14 +20,14 @@ class BarcodeScannerFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var viewModel: BarcodeScannerViewModel
+    private lateinit var adapter: ScannedShipmentsAdapter
     private var companies: List<CompanyEntity> = emptyList()
 
-    private val scanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        val result = IntentIntegrator.parseActivityResult(it.resultCode, it.data)
+    private val scanLauncher = registerForActivityResult(ScanContract()) { result ->
         if (result.contents == null) {
             Toast.makeText(requireContext(), "تم إلغاء المسح", Toast.LENGTH_LONG).show()
         } else {
-            viewModel.saveShipment(result.contents)
+            viewModel.handleScannedBarcode(result.contents)
         }
     }
 
@@ -46,10 +43,17 @@ class BarcodeScannerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProvider(this).get(BarcodeScannerViewModel::class.java)
+        adapter = ScannedShipmentsAdapter()
 
+        setupRecyclerView()
         setupUI()
         observeViewModel()
         loadCompanies()
+    }
+
+    private fun setupRecyclerView() {
+        binding.scannedShipmentsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.scannedShipmentsRecyclerView.adapter = adapter
     }
 
     private fun setupUI() {
@@ -58,29 +62,53 @@ class BarcodeScannerFragment : Fragment() {
                 Toast.makeText(requireContext(), "يرجى اختيار شركة الشحن أولاً", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            
+
             val options = ScanOptions()
             options.setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES)
             options.setPrompt("امسح الباركود")
             options.setCameraId(0)
             options.setBeepEnabled(false)
             options.setBarcodeImageEnabled(true)
-
-            val integrator = IntentIntegrator(requireActivity())
-            integrator.initiateScan()
+            scanLauncher.launch(options)
         }
 
         binding.syncButton.setOnClickListener {
-            lifecycleScope.launch {
-                viewModel.repository.syncCompanies()
-                loadCompanies()
+            viewModel.refreshCompanies()
+        }
+
+        binding.sendShipmentsButton.setOnClickListener {
+            viewModel.submitShipments()
+        }
+
+        binding.clearShipmentsButton.setOnClickListener {
+            viewModel.clearScannedShipments()
+        }
+
+        binding.companySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: android.widget.AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                if (position in companies.indices) {
+                    viewModel.setSelectedCompany(companies[position])
+                }
             }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
         }
     }
 
     private fun observeViewModel() {
         viewModel.selectedCompany.observe(viewLifecycleOwner) { company ->
             binding.selectedCompanyText.text = company?.name ?: "لم يتم اختيار شركة"
+            company?.let {
+                val index = companies.indexOfFirst { it.id == company.id }
+                if (index >= 0 && binding.companySpinner.selectedItemPosition != index) {
+                    binding.companySpinner.setSelection(index)
+                }
+            }
         }
 
         viewModel.scanResult.observe(viewLifecycleOwner) { result ->
@@ -97,9 +125,17 @@ class BarcodeScannerFragment : Fragment() {
             }
         }
 
+        viewModel.scannedShipments.observe(viewLifecycleOwner) { shipments ->
+            adapter.submitList(shipments)
+            val total = shipments.sumOf { it.count }
+            binding.totalScannedText.text = "إجمالي العناصر: $total"
+        }
+
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.startScanningButton.isEnabled = !isLoading
+            binding.sendShipmentsButton.isEnabled = !isLoading
+            binding.syncButton.isEnabled = !isLoading
         }
     }
 
@@ -111,13 +147,12 @@ class BarcodeScannerFragment : Fragment() {
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             binding.companySpinner.adapter = adapter
 
-            binding.companySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    if (position >= 0 && position < companies.size) {
-                        viewModel.setSelectedCompany(companies[position])
-                    }
+            val selectedId = viewModel.selectedCompany.value?.id
+            if (selectedId != null) {
+                val index = companies.indexOfFirst { it.id == selectedId }
+                if (index >= 0) {
+                    binding.companySpinner.setSelection(index)
                 }
-                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
             }
         }
     }
