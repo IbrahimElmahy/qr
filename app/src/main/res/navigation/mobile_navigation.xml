@@ -3,13 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@id/navigation_shipping_companies">
-
-    <fragment
-        android:id="@+id/navigation_shipping_companies"
-        android:name="com.example.packaging.ui.shipping.ShippingCompaniesFragment"
-        android:label="Shipping Companies"
-        tools:layout="@layout/fragment_shipping_companies" />
+    app:startDestination="@id/navigation_barcode_scanner">
 
     <fragment
         android:id="@+id/navigation_barcode_scanner"

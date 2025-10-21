@@ -1,6 +1,8 @@
 package com.example.packaging.data
 
 import android.content.Context
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.asLiveData
 import kotlinx.coroutines.flow.Flow
 import java.util.Date
 
@@ -11,8 +13,8 @@ class Repository(context: Context) {
     private val apiService = RetrofitInstance.api
 
     // إدارة الشركات
-    suspend fun getCompanies(): Flow<List<CompanyEntity>> = companyDao.getAllCompanies()
-    suspend fun getActiveCompanies(): Flow<List<CompanyEntity>> = companyDao.getActiveCompanies()
+    fun getCompanies(): LiveData<List<CompanyEntity>> = companyDao.getAllCompanies().asLiveData()
+    fun getActiveCompanies(): LiveData<List<CompanyEntity>> = companyDao.getActiveCompanies().asLiveData()
     suspend fun getCompanyById(id: Int): CompanyEntity? = companyDao.getCompanyById(id)
     
     suspend fun syncCompanies() {
@@ -73,11 +75,12 @@ class Repository(context: Context) {
     }
 
     // إدارة الشحنات
-    suspend fun addShipment(barcode: String, companyId: Int): Result<Shipment> {
+    suspend fun addShipment(barcode: String, companyId: Int, companyName: String): Result<Shipment> {
         return try {
             val shipment = Shipment(
                 barcode = barcode,
                 companyId = companyId,
+                companyName = companyName,
                 scanDate = Date()
             )
             
@@ -85,11 +88,13 @@ class Repository(context: Context) {
             shipmentDao.insert(shipment)
             
             // إرسال للسيرفر
-            val response = apiService.addShipment(AddShipmentRequest(
-                barcode = barcode,
-                company_id = companyId,
-                scan_date = null
-            ))
+            val response = apiService.addShipment(
+                AddShipmentRequest(
+                    barcode = barcode,
+                    company_id = companyId,
+                    scan_date = null
+                )
+            )
             
             if (response.isSuccessful && response.body()?.success == true) {
                 val syncedShipment = response.body()?.data!!
@@ -104,6 +109,7 @@ class Repository(context: Context) {
                 val shipment = Shipment(
                     barcode = barcode,
                     companyId = companyId,
+                    companyName = companyName,
                     scanDate = Date()
                 )
                 shipmentDao.insert(shipment)
