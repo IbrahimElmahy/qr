@@ -1,3 +1,21 @@
 <resources>
     <string name="app_name">packaging</string>
+    <string name="scanner_title">إدارة الشحنات</string>
+    <string name="scanner_company_label">اختر شركة الشحن</string>
+    <string name="scanner_no_companies_hint">لا توجد شركات متاحة حاليًا. اضغط على زر تحديث الشركات لجلب القائمة.</string>
+    <string name="scanner_no_company_selected">لم يتم اختيار شركة</string>
+    <string name="scanner_refresh_companies">تحديث الشركات</string>
+    <string name="scanner_start_scanning">ابدأ المسح</string>
+    <string name="scanner_list_title">المنتجات الممسوحة</string>
+    <string name="scanner_empty_list">لم يتم مسح أي منتجات بعد.</string>
+    <string name="scanner_total_items_placeholder">إجمالي العناصر: 0</string>
+    <string name="scanner_total_items">إجمالي العناصر: %1$d</string>
+    <string name="scanner_clear_shipments">إلغاء القائمة</string>
+    <string name="scanner_submit_shipments">إرسال الشحنات</string>
+    <string name="scanner_instructions">1. اختر الشركة
+2. امسح الباركود للمنتجات
+3. كرر المسح لنفس المنتج لزيادة الكمية
+4. اضغط إرسال عند الانتهاء</string>
+    <string name="scanner_company_updated">تم تحديث قائمة الشركات</string>
+    <string name="scanner_no_shipments_error">لا توجد شحنات لإرسالها</string>
 </resources>

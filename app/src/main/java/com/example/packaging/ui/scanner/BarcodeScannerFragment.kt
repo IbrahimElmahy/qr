@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.packaging.data.CompanyEntity
@@ -22,6 +23,9 @@ class BarcodeScannerFragment : Fragment() {
     private lateinit var viewModel: BarcodeScannerViewModel
     private lateinit var adapter: ScannedShipmentsAdapter
     private var companies: List<CompanyEntity> = emptyList()
+    private var currentShipments: List<ScannedShipmentItem> = emptyList()
+    private var hasRequestedCompanySync = false
+    private var currentIsLoading = false
 
     private val scanLauncher = registerForActivityResult(ScanContract()) { result ->
         if (result.contents == null) {
@@ -154,7 +158,28 @@ class BarcodeScannerFragment : Fragment() {
                     binding.companySpinner.setSelection(index)
                 }
             }
+
+            if (companiesList.isEmpty() && !hasRequestedCompanySync) {
+                hasRequestedCompanySync = true
+                viewModel.refreshCompanies()
+            }
+
+            updateScanButtonState()
         }
+    }
+
+    private fun updateActionButtons() {
+        val hasShipments = currentShipments.isNotEmpty()
+        val enableActions = hasShipments && !currentIsLoading
+        binding.sendShipmentsButton.isEnabled = enableActions
+        binding.clearShipmentsButton.isEnabled = enableActions
+    }
+
+    private fun updateScanButtonState() {
+        val hasCompanySelected = viewModel.selectedCompany.value != null
+        binding.startScanningButton.isEnabled = hasCompanySelected && !currentIsLoading
+        binding.selectedCompanyText.text = viewModel.selectedCompany.value?.name
+            ?: getString(R.string.scanner_no_company_selected)
     }
 
     override fun onDestroyView() {
