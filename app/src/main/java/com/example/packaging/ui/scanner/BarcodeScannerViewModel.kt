@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.example.packaging.R
 import com.example.packaging.data.CompanyEntity
 import com.example.packaging.data.Repository
 import kotlinx.coroutines.launch
@@ -13,7 +12,6 @@ import kotlinx.coroutines.launch
 class BarcodeScannerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = Repository(application)
-    private val app = getApplication<Application>()
 
     private val _selectedCompany = MutableLiveData<CompanyEntity?>()
     val selectedCompany: LiveData<CompanyEntity?> = _selectedCompany
@@ -75,7 +73,7 @@ class BarcodeScannerViewModel(application: Application) : AndroidViewModel(appli
     fun submitShipments() {
         val pendingShipments = _scannedShipments.value.orEmpty()
         if (pendingShipments.isEmpty()) {
-            _errorMessage.value = app.getString(R.string.scanner_no_shipments_error)
+            _errorMessage.value = "لا توجد شحنات لإرسالها"
             return
         }
 
@@ -136,7 +134,7 @@ class BarcodeScannerViewModel(application: Application) : AndroidViewModel(appli
         viewModelScope.launch {
             try {
                 repository.syncCompanies()
-                _scanResult.value = app.getString(R.string.scanner_company_updated)
+                _scanResult.value = "تم تحديث قائمة الشركات"
             } catch (e: Exception) {
                 _errorMessage.value = "خطأ في تحديث الشركات: ${e.message}"
             } finally {

@@ -10,7 +10,6 @@ import androidx.fragment.app.Fragment
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.packaging.R
 import com.example.packaging.data.CompanyEntity
 import com.example.packaging.databinding.FragmentBarcodeScannerBinding
 import com.journeyapps.barcodescanner.ScanContract
@@ -107,13 +106,13 @@ class BarcodeScannerFragment : Fragment() {
 
     private fun observeViewModel() {
         viewModel.selectedCompany.observe(viewLifecycleOwner) { company ->
+            binding.selectedCompanyText.text = company?.name ?: "لم يتم اختيار شركة"
             company?.let {
                 val index = companies.indexOfFirst { it.id == company.id }
                 if (index >= 0 && binding.companySpinner.selectedItemPosition != index) {
                     binding.companySpinner.setSelection(index)
                 }
             }
-            updateScanButtonState()
         }
 
         viewModel.scanResult.observe(viewLifecycleOwner) { result ->
@@ -131,22 +130,16 @@ class BarcodeScannerFragment : Fragment() {
         }
 
         viewModel.scannedShipments.observe(viewLifecycleOwner) { shipments ->
-            currentShipments = shipments
             adapter.submitList(shipments)
             val total = shipments.sumOf { it.count }
-            binding.totalScannedText.text = getString(R.string.scanner_total_items, total)
-            binding.emptyListText.isVisible = shipments.isEmpty()
-            binding.scannedShipmentsRecyclerView.isVisible = shipments.isNotEmpty()
-            updateActionButtons()
+            binding.totalScannedText.text = "إجمالي العناصر: $total"
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            currentIsLoading = isLoading
-            binding.progressBar.isVisible = isLoading
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+            binding.startScanningButton.isEnabled = !isLoading
+            binding.sendShipmentsButton.isEnabled = !isLoading
             binding.syncButton.isEnabled = !isLoading
-            binding.companySpinner.isEnabled = !isLoading && companies.isNotEmpty()
-            updateScanButtonState()
-            updateActionButtons()
         }
     }
 
@@ -157,9 +150,6 @@ class BarcodeScannerFragment : Fragment() {
             val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, companyNames)
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             binding.companySpinner.adapter = adapter
-            binding.companySpinner.isVisible = companiesList.isNotEmpty()
-            binding.companyEmptyText.isVisible = companiesList.isEmpty()
-            binding.companySpinner.isEnabled = !currentIsLoading && companiesList.isNotEmpty()
 
             val selectedId = viewModel.selectedCompany.value?.id
             if (selectedId != null) {
