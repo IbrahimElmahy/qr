@@ -14,7 +14,6 @@ import com.example.packaging.data.CompanyEntity
 import com.example.packaging.data.Shipment
 import com.example.packaging.data.network.StatisticsResponse
 import com.example.packaging.databinding.FragmentDailyStatisticsBinding
-import com.example.packaging.ui.stats.ShipmentAdapter
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -55,27 +54,17 @@ class DailyStatisticsFragment : Fragment() {
     }
 
     private fun setupUI() {
-        binding.dateButton.setOnClickListener {
-            showDatePicker()
-        }
-
+        binding.dateButton.setOnClickListener { showDatePicker() }
+        binding.retryButton.setOnClickListener { viewModel.loadStatistics() }
         binding.companySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (position == 0) {
-                    viewModel.setSelectedCompany(null) // جميع الشركات
+                    viewModel.setSelectedCompany(null)
                 } else if (position > 0 && position <= companies.size) {
                     viewModel.setSelectedCompany(companies[position - 1])
                 }
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-        }
-
-        binding.syncButton.setOnClickListener {
-            viewModel.syncUnsyncedShipments()
-        }
-
-        binding.refreshButton.setOnClickListener {
-            viewModel.loadStatistics()
         }
     }
 
@@ -84,37 +73,66 @@ class DailyStatisticsFragment : Fragment() {
             binding.dateButton.text = date
         }
 
-        viewModel.selectedCompany.observe(viewLifecycleOwner) { company ->
-            binding.selectedCompanyText.text = company?.name ?: "جميع الشركات"
-        }
-
         viewModel.statistics.observe(viewLifecycleOwner) { stats ->
-            stats?.let {
-                updateStatisticsDisplay(it)
+            if (stats != null) {
+                updateStatisticsDisplay(stats)
+                binding.errorTextview.visibility = View.GONE
+                binding.retryButton.visibility = View.GONE
             }
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-            binding.refreshButton.isEnabled = !isLoading
-            binding.syncButton.isEnabled = !isLoading
+            binding.retryButton.isEnabled = !isLoading
         }
 
         viewModel.errorMessage.observe(viewLifecycleOwner) { error ->
-            error?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
-                viewModel.clearMessages()
+            if (error != null) {
+                binding.errorTextview.text = error
+                binding.errorTextview.visibility = View.VISIBLE
+                binding.retryButton.visibility = View.VISIBLE
+            } else {
+                binding.errorTextview.visibility = View.GONE
+                binding.retryButton.visibility = View.GONE
             }
         }
-    }
 
-    private fun loadCompanies() {
         viewModel.activeCompanies.observe(viewLifecycleOwner) { companiesList ->
             companies = companiesList
             val companyNames = listOf("جميع الشركات") + companiesList.map { it.name }
             val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, companyNames)
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             binding.companySpinner.adapter = adapter
+            
+            // Debug logging
+            android.util.Log.d("DailyStatistics", "🔍 Companies loaded: ${companiesList.size}")
+            companiesList.forEach { company ->
+                android.util.Log.d("DailyStatistics", "🔍 Company: ${company.name} (ID: ${company.id})")
+            }
+        }
+    }
+
+    private fun loadCompanies() {
+        // تحميل الشركات من API مباشرة
+        android.util.Log.d("DailyStatistics", "🔍 Starting to load companies...")
+        viewModel.loadCompanies()
+        
+        // تحميل إضافي من قاعدة البيانات المحلية
+        viewModel.activeCompanies.observe(viewLifecycleOwner) { companiesList ->
+            android.util.Log.d("DailyStatistics", "🔍 Companies observed: ${companiesList.size}")
+            if (companiesList.isNotEmpty()) {
+                companies = companiesList
+                val companyNames = listOf("جميع الشركات") + companiesList.map { it.name }
+                val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, companyNames)
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                binding.companySpinner.adapter = adapter
+                
+                android.util.Log.d("DailyStatistics", "🔍 Spinner updated with ${companyNames.size} items")
+            } else {
+                android.util.Log.w("DailyStatistics", "🔍 No companies found, trying to load from API...")
+                // محاولة تحميل من API إذا لم توجد شركات محلياً
+                viewModel.loadCompanies()
+            }
         }
     }
 
@@ -140,17 +158,6 @@ class DailyStatisticsFragment : Fragment() {
         binding.totalShipmentsTextview.text = "إجمالي الشحنات: ${stats.statistics.totalUniqueShipments}"
         binding.duplicateShipmentsTextview.text = "الشحنات المكررة: ${stats.statistics.duplicateCount}"
         binding.totalScansTextview.text = "إجمالي المسحات: ${stats.statistics.totalScans}"
-        
-        // تحديث قائمة الشحنات
-        adapter.setData(stats.shipments.map { shipmentStats ->
-            Shipment(
-                barcode = shipmentStats.barcode,
-                companyId = 0, // سيتم تحديثه لاحقاً
-                companyName = shipmentStats.companyName,
-                scanDate = Date(), // سيتم تحديثه لاحقاً
-                isSynced = true
-            )
-        })
     }
 
     override fun onDestroyView() {

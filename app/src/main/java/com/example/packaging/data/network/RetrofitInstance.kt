@@ -1,5 +1,6 @@
 package com.example.packaging.data.network
 
+import com.google.gson.GsonBuilder
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -8,8 +9,8 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitInstance {
     // رابط السيرفر الحقيقي
-    private const val BASE_URL = "https://zabda-al-tajamil.com/shipment_tracking/api/"
-    
+    private const val BASE_URL = "https://zabda-al-tajamil.com/"
+
     // بيانات المصادقة
     private const val USERNAME = "admin"
     private const val PASSWORD = "1234"
@@ -30,11 +31,16 @@ object RetrofitInstance {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    // Create a lenient Gson instance
+    private val gson = GsonBuilder()
+        .setLenient()
+        .create()
+
     val api: ApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson)) // Use the lenient Gson instance
             .build()
             .create(ApiService::class.java)
     }

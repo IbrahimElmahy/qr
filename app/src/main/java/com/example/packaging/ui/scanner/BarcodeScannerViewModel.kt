@@ -134,9 +134,9 @@ class BarcodeScannerViewModel(application: Application) : AndroidViewModel(appli
         viewModelScope.launch {
             try {
                 repository.syncCompanies()
-                _scanResult.value = "تم تحديث قائمة الشركات"
+                _scanResult.value = "تم تحديث قائمة الشركات بنجاح"
             } catch (e: Exception) {
-                _errorMessage.value = "خطأ في تحديث الشركات: ${e.message}"
+                _errorMessage.value = "فشل تحديث الشركات: ${e.message}"
             } finally {
                 _isLoading.value = false
             }

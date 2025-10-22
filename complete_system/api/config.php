@@ -2,8 +2,8 @@
 // إعدادات قاعدة البيانات
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'shipment_tracking');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_USER', 'ahmed');
+define('DB_PASS', 'Ahmedhelmy12');
 
 // إعدادات التطبيق
 define('API_BASE_URL', 'http://localhost/shipment_tracking/api/');

@@ -1,9 +1,54 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Packaging" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-    </style>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme - White and Blue Theme -->
+    <style name="Theme.Packaging" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color - White -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryVariant">@color/colorPrimaryDark</item>
+        <item name="colorOnPrimary">@color/textColorOnPrimary</item>
 
-    <style name="Theme.Packaging" parent="Base.Theme.Packaging" />
+        <!-- Secondary brand color - Blue -->
+        <item name="colorSecondary">@color/colorAccent</item>
+        <item name="colorSecondaryVariant">@color/blue700</item>
+        <item name="colorOnSecondary">@color/textColorOnAccent</item>
+
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@color/colorAccent</item>
+        
+        <!-- Navigation bar color -->
+        <item name="android:navigationBarColor">@color/colorPrimary</item>
+
+        <!-- Window background -->
+        <item name="android:windowBackground">@color/windowBackground</item>
+        <item name="android:textColor">@color/textColorPrimary</item>
+        
+        <!-- Card view style -->
+        <item name="cardViewStyle">@style/CardViewStyle</item>
+        
+        <!-- Button styles -->
+        <item name="buttonStyle">@style/ButtonStyle</item>
+        <item name="materialButtonStyle">@style/MaterialButtonStyle</item>
+    </style>
+    
+    <!-- Card View Style -->
+    <style name="CardViewStyle" parent="CardView">
+        <item name="cardBackgroundColor">@color/cardBackground</item>
+        <item name="cardCornerRadius">8dp</item>
+        <item name="cardElevation">4dp</item>
+        <item name="contentPadding">16dp</item>
+    </style>
+    
+    <!-- Button Style -->
+    <style name="ButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/buttonBackground</item>
+        <item name="android:textColor">@color/textColorOnAccent</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+    
+    <!-- Material Button Style -->
+    <style name="MaterialButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/colorAccent</item>
+        <item name="android:textColor">@color/textColorOnAccent</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
 </resources>

@@ -1,14 +1,14 @@
 <?php
-// إعدادات قاعدة البيانات المحدثة
+// إعدادات قاعدة البيانات
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'ztjmal_shipmen');  // اسم قاعدة البيانات الكامل
-define('DB_USER', 'ztjmal_shipment_user');  // اسم المستخدم الكامل
-define('DB_PASS', 'your_password_here');  // كلمة المرور التي اخترتها
+define('DB_NAME', 'ztjmal_shipmen');
+define('DB_USER', 'ztjmal_ahmed');
+define('DB_PASS', 'Ahmedhelmy12');
 
 // إعدادات التطبيق
-define('API_BASE_URL', 'https://zabda-al-tajamil.com/shipment_tracking/api/');
+define('API_BASE_URL', 'http://localhost/shipment_tracking/api/');
 
-// إعدادات المصادقة
+// إعدادات المصادقة - تأكد من هذه البيانات
 define('ADMIN_USERNAME', 'admin');
 define('ADMIN_PASSWORD', '1234');
 
@@ -25,6 +25,10 @@ function getDatabaseConnection() {
                 PDO::ATTR_EMULATE_PREPARES => false
             ]
         );
+        
+        // إعداد UTF-8
+        $pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
+        $pdo->exec("SET CHARACTER SET utf8mb4");
         return $pdo;
     } catch (PDOException $e) {
         http_response_code(500);

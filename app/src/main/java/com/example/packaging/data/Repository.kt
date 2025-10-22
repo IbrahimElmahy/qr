@@ -3,7 +3,11 @@ package com.example.packaging.data
 import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
-import kotlinx.coroutines.flow.Flow
+import com.example.packaging.data.network.AddCompanyRequest
+import com.example.packaging.data.network.AddShipmentRequest
+import com.example.packaging.data.network.RetrofitInstance
+import com.example.packaging.data.network.StatisticsResponse
+import com.example.packaging.data.network.ToggleCompanyRequest
 import java.util.Date
 
 class Repository(context: Context) {
@@ -32,7 +36,47 @@ class Repository(context: Context) {
                 companyDao.insertCompanies(companyEntities)
             }
         } catch (e: Exception) {
-            // Handle error
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun loadCompaniesFromAPI() {
+        try {
+            android.util.Log.d("Repository", "🔍 Loading companies from API...")
+            val response = apiService.getCompanies()
+            android.util.Log.d("Repository", "🔍 API Response: ${response.code()}")
+            
+            if (response.isSuccessful) {
+                val responseBody = response.body()
+                android.util.Log.d("Repository", "🔍 Response body: $responseBody")
+                
+                if (responseBody?.success == true) {
+                    val companies = responseBody.data ?: emptyList()
+                    android.util.Log.d("Repository", "🔍 Companies count: ${companies.size}")
+                    
+                    if (companies.isNotEmpty()) {
+                        val companyEntities = companies.map { company ->
+                            CompanyEntity(
+                                id = company.id,
+                                name = company.name,
+                                isActive = company.isActive
+                            )
+                        }
+                        companyDao.insertCompanies(companyEntities)
+                        android.util.Log.d("Repository", "🔍 Companies saved to database: ${companyEntities.size}")
+                    } else {
+                        android.util.Log.w("Repository", "🔍 No companies returned from API")
+                    }
+                } else {
+                    android.util.Log.e("Repository", "🔍 API returned success=false: ${responseBody?.message}")
+                }
+            } else {
+                android.util.Log.e("Repository", "🔍 API call failed: ${response.code()}")
+                android.util.Log.e("Repository", "🔍 Error body: ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("Repository", "🔍 Error loading companies: ${e.message}")
+            e.printStackTrace()
         }
     }
 
@@ -51,6 +95,7 @@ class Repository(context: Context) {
                 Result.failure(Exception(response.body()?.error ?: "Unknown error"))
             }
         } catch (e: Exception) {
+            e.printStackTrace()
             Result.failure(e)
         }
     }
@@ -70,6 +115,7 @@ class Repository(context: Context) {
                 Result.failure(Exception(response.body()?.error ?: "Unknown error"))
             }
         } catch (e: Exception) {
+            e.printStackTrace()
             Result.failure(e)
         }
     }
@@ -105,6 +151,7 @@ class Repository(context: Context) {
             }
         } catch (e: Exception) {
             // في حالة فشل الاتصال، نحفظ الشحنة محلياً
+            e.printStackTrace()
             try {
                 val shipment = Shipment(
                     barcode = barcode,
@@ -115,6 +162,7 @@ class Repository(context: Context) {
                 shipmentDao.insert(shipment)
                 Result.success(shipment)
             } catch (dbException: Exception) {
+                dbException.printStackTrace()
                 Result.failure(dbException)
             }
         }
@@ -147,20 +195,26 @@ class Repository(context: Context) {
                 }
             }
         } catch (e: Exception) {
-            // Handle error
+            e.printStackTrace()
         }
     }
 
     // الإحصائيات
     suspend fun getStatistics(companyId: Int? = null, date: String? = null): Result<StatisticsResponse> {
         return try {
-            val response = apiService.getStats(companyId, date)
-            if (response.isSuccessful && response.body()?.success == true) {
-                Result.success(response.body()!!)
+            val response = apiService.getStatistics(companyId, date)
+            if (response.isSuccessful) {
+                val stats = response.body()
+                if (stats != null) {
+                    Result.success(stats)
+                } else {
+                    Result.failure(Exception("Response body is null"))
+                }
             } else {
-                Result.failure(Exception(response.body()?.error ?: "Unknown error"))
+                Result.failure(Exception("Network request failed with code ${response.code()}: ${response.message()}"))
             }
         } catch (e: Exception) {
+            e.printStackTrace()
             Result.failure(e)
         }
     }
