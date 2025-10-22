@@ -6,12 +6,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.packaging.data.CompanyEntity
 import com.example.packaging.data.Shipment
+import com.example.packaging.data.network.StatisticsFilters
 import com.example.packaging.data.network.StatisticsResponse
 import com.example.packaging.databinding.FragmentDailyStatisticsBinding
 import java.text.SimpleDateFormat
@@ -56,12 +56,15 @@ class DailyStatisticsFragment : Fragment() {
     private fun setupUI() {
         binding.dateButton.setOnClickListener { showDatePicker() }
         binding.retryButton.setOnClickListener { viewModel.loadStatistics() }
+        binding.refreshButton.setOnClickListener { viewModel.loadStatistics() }
         binding.companySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (position == 0) {
                     viewModel.setSelectedCompany(null)
+                    binding.selectedCompanyText.text = "جميع الشركات"
                 } else if (position > 0 && position <= companies.size) {
                     viewModel.setSelectedCompany(companies[position - 1])
+                    binding.selectedCompanyText.text = companies[position - 1].name
                 }
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
@@ -79,6 +82,10 @@ class DailyStatisticsFragment : Fragment() {
                 binding.errorTextview.visibility = View.GONE
                 binding.retryButton.visibility = View.GONE
             }
+        }
+
+        viewModel.activeFilters.observe(viewLifecycleOwner) { filters ->
+            updateFilterSummary(filters)
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
@@ -103,12 +110,14 @@ class DailyStatisticsFragment : Fragment() {
             val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, companyNames)
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             binding.companySpinner.adapter = adapter
-            
+
             // Debug logging
             android.util.Log.d("DailyStatistics", "🔍 Companies loaded: ${companiesList.size}")
             companiesList.forEach { company ->
                 android.util.Log.d("DailyStatistics", "🔍 Company: ${company.name} (ID: ${company.id})")
             }
+
+            viewModel.activeFilters.value?.let { updateFilterSummary(it) }
         }
     }
 
@@ -158,6 +167,38 @@ class DailyStatisticsFragment : Fragment() {
         binding.totalShipmentsTextview.text = "إجمالي الشحنات: ${stats.statistics.totalUniqueShipments}"
         binding.duplicateShipmentsTextview.text = "الشحنات المكررة: ${stats.statistics.duplicateCount}"
         binding.totalScansTextview.text = "إجمالي المسحات: ${stats.statistics.totalScans}"
+    }
+
+    private fun updateFilterSummary(filters: StatisticsFilters?) {
+        val dateText = when {
+            filters?.date?.isNotBlank() == true -> filters.date
+            filters?.startDate != null || filters?.endDate != null -> {
+                val start = filters?.startDate ?: "غير محدد"
+                val end = filters?.endDate ?: "غير محدد"
+                "$start → $end"
+            }
+            else -> viewModel.selectedDate.value ?: binding.dateButton.text.toString()
+        }
+        binding.dateButton.text = dateText
+
+        val companyLabel = filters?.companyId?.let { id ->
+            val companyName = companies.find { it.id == id }?.name
+            companyName ?: "معرف الشركة: $id"
+        } ?: "جميع الشركات"
+        binding.selectedCompanyText.text = "الشركة: $companyLabel"
+
+        if (binding.companySpinner.adapter != null) {
+            filters?.companyId?.let { id ->
+                val index = companies.indexOfFirst { it.id == id }
+                if (index >= 0 && binding.companySpinner.selectedItemPosition != index + 1) {
+                    binding.companySpinner.setSelection(index + 1)
+                }
+            } ?: run {
+                if (binding.companySpinner.selectedItemPosition != 0) {
+                    binding.companySpinner.setSelection(0)
+                }
+            }
+        }
     }
 
     override fun onDestroyView() {

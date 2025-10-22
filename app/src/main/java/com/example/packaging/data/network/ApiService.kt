@@ -33,6 +33,8 @@ interface ApiService {
     @GET("getStats.php")
     suspend fun getStatistics(
         @Query("company_id") companyId: Int? = null,
-        @Query("date") date: String? = null
+        @Query("date") date: String? = null,
+        @Query("start_date") startDate: String? = null,
+        @Query("end_date") endDate: String? = null
     ): Response<StatisticsResponse>
 }
