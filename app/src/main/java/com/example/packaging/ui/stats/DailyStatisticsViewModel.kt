@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.packaging.data.CompanyEntity
 import com.example.packaging.data.Repository
+import com.example.packaging.data.network.StatisticsFilters
 import com.example.packaging.data.network.StatisticsResponse
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -23,6 +24,12 @@ class DailyStatisticsViewModel(application: Application) : AndroidViewModel(appl
     private val _selectedCompany = MutableLiveData<CompanyEntity?>()
     val selectedCompany: LiveData<CompanyEntity?> = _selectedCompany
 
+    private val _selectedStartDate = MutableLiveData<String?>(null)
+    val selectedStartDate: LiveData<String?> = _selectedStartDate
+
+    private val _selectedEndDate = MutableLiveData<String?>(null)
+    val selectedEndDate: LiveData<String?> = _selectedEndDate
+
     private val _statistics = MutableLiveData<StatisticsResponse?>()
     val statistics: LiveData<StatisticsResponse?> = _statistics
 
@@ -31,6 +38,9 @@ class DailyStatisticsViewModel(application: Application) : AndroidViewModel(appl
 
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
+
+    private val _activeFilters = MutableLiveData<StatisticsFilters?>()
+    val activeFilters: LiveData<StatisticsFilters?> = _activeFilters
 
     val activeCompanies = repository.getActiveCompanies()
 
@@ -50,6 +60,8 @@ class DailyStatisticsViewModel(application: Application) : AndroidViewModel(appl
 
     fun setSelectedDate(date: String) {
         _selectedDate.value = date
+        _selectedStartDate.value = null
+        _selectedEndDate.value = null
         loadStatistics()
     }
 
@@ -58,21 +70,44 @@ class DailyStatisticsViewModel(application: Application) : AndroidViewModel(appl
         loadStatistics()
     }
 
+    fun setDateRange(startDate: String?, endDate: String?) {
+        _selectedStartDate.value = startDate
+        _selectedEndDate.value = endDate
+        if (startDate != null || endDate != null) {
+            _selectedDate.value = startDate ?: endDate ?: _selectedDate.value
+        }
+        loadStatistics()
+    }
+
     fun loadStatistics() {
-        val date = _selectedDate.value ?: return
         val companyId = _selectedCompany.value?.id
+        val startDate = _selectedStartDate.value
+        val endDate = _selectedEndDate.value
+        val useRange = !startDate.isNullOrBlank() || !endDate.isNullOrBlank()
+        val date = if (useRange) null else _selectedDate.value
+
+        if (!useRange && date.isNullOrBlank()) {
+            return
+        }
 
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val result = repository.getStatistics(companyId, date)
+                val result = repository.getStatistics(
+                    companyId = companyId,
+                    date = date,
+                    startDate = if (useRange) startDate else null,
+                    endDate = if (useRange) endDate else null
+                )
                 result.fold(
                     onSuccess = { stats ->
                         _statistics.value = stats
+                        _activeFilters.value = stats.filters
                         _errorMessage.value = null
                     },
                     onFailure = { error ->
                         _statistics.value = null
+                        _activeFilters.value = null
                         if (error.message?.contains("404") == true) {
                             _errorMessage.value = "خطأ 404: الملف غير موجود."
                         } else if (error.message?.contains("401") == true) {
@@ -84,6 +119,7 @@ class DailyStatisticsViewModel(application: Application) : AndroidViewModel(appl
                 )
             } catch (e: Exception) {
                 _statistics.value = null
+                _activeFilters.value = null
                 _errorMessage.value = "خطأ في الاتصال: ${e.message}"
             } finally {
                 _isLoading.value = false

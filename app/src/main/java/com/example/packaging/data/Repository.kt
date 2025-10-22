@@ -200,9 +200,19 @@ class Repository(context: Context) {
     }
 
     // الإحصائيات
-    suspend fun getStatistics(companyId: Int? = null, date: String? = null): Result<StatisticsResponse> {
+    suspend fun getStatistics(
+        companyId: Int? = null,
+        date: String? = null,
+        startDate: String? = null,
+        endDate: String? = null
+    ): Result<StatisticsResponse> {
         return try {
-            val response = apiService.getStatistics(companyId, date)
+            val response = apiService.getStatistics(
+                companyId = companyId,
+                date = date,
+                startDate = startDate,
+                endDate = endDate
+            )
             if (response.isSuccessful) {
                 val stats = response.body()
                 if (stats != null) {
